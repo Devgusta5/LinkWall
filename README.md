@@ -16,6 +16,7 @@ Sem configuração do Redis, a interface funciona em modo local e as publicaçõ
 Copie `.env.example` para `.env.local` e preencha as credenciais server-side:
 
 - `UPSTASH_REDIS_REST_URL` e `UPSTASH_REDIS_REST_TOKEN`: database Redis REST no Upstash. A sala e o índice de URLs expiram após 30 dias sem atividade.
+- As chaves deste app usam o namespace `linkwall:` (por exemplo, `linkwall:turma:profiles`) para separar os dados dos outros projetos no Redis compartilhado.
 - `ABLY_API_KEY`: chave Ably com permissão para publicar e criar token. O endpoint entrega aos navegadores somente autorização `subscribe` para o canal da sala. Sem esta variável, o cliente consulta Redis a cada 15 segundos.
 
 As salas são determinadas pelo último trecho da URL (`/turma` ou `/workshop-2026`). A sala padrão é `/turma`. O limite por sala é 500 perfis; a API aceita até 8 publicações por IP por minuto. Nome e link são públicos para quem tem o endereço da sala. O estado visto/não visto só existe no navegador e por sala.

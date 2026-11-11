@@ -39,7 +39,7 @@ async function redis(command: unknown[]) {
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const room = req.query.room
   if (!validRoom(room)) return res.status(400).json({ error: 'Sala inválida.' })
-  const listKey = `linkmural:${room}:profiles`
+  const listKey = `linkwall:${room}:profiles`
   if (req.method === 'GET') {
     try { return res.status(200).json({ profiles: await redis(['LRANGE', listKey, '0', String(maxProfiles - 1)]) }) }
     catch { return res.status(503).json({ error: 'Mural indisponível. Verifique a configuração do Redis.' }) }
@@ -56,7 +56,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
   const profile = { id: crypto.randomUUID(), roomId: room, name: name.trim(), linkedinUrl: `https://www.linkedin.com${url.pathname.replace(/\/$/, '')}`, createdAt: Date.now() }
   const ip = String(req.headers['x-forwarded-for'] ?? req.socket.remoteAddress ?? 'unknown').split(',')[0].trim()
-  const rateKey = `linkmural:rate:${ip}:${Math.floor(Date.now() / 60000)}`
+  const rateKey = `linkwall:rate:${ip}:${Math.floor(Date.now() / 60000)}`
   try {
     await redis(['EVAL', script, '3', listKey, `${listKey}:urls`, rateKey, profile.linkedinUrl.toLowerCase(), JSON.stringify(profile), String(maxProfiles), String(ttlSeconds)])
     if (process.env.ABLY_API_KEY) {
