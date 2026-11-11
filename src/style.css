@@ -82,6 +82,11 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 3px solid 
 .optional { color: var(--muted); font-size: 9px; font-weight: 400; }
 .form-bottom { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 15px; padding-top: 12px; border-top: 1px solid var(--line); }
 .form-bottom small { max-width: 270px; color: var(--muted); font-size: 9px; }
+.publish-success { min-height: 178px; display: flex; align-items: center; justify-content: center; gap: 17px; padding: 24px; border: 1px solid color-mix(in srgb, var(--green) 45%, var(--line)); border-radius: 16px; background: color-mix(in srgb, var(--green) 9%, var(--surface-raised)); text-align: left; animation: success-arrive 360ms cubic-bezier(.2,.8,.2,1) both; }
+.publish-success strong { display: block; color: var(--green); font-size: 17px; font-weight: 700; letter-spacing: -.03em; }
+.publish-success p { margin: 5px 0; color: var(--ink); font-size: 11px; }
+.publish-success small { color: var(--muted); font-size: 9px; }
+.success-check { width: 48px; height: 48px; display: grid; flex: 0 0 auto; place-items: center; border-radius: 50%; background: var(--green); color: #fff; font-size: 27px; font-weight: 700; box-shadow: 0 0 0 7px color-mix(in srgb, var(--green) 14%, transparent); }
 .primary-button, .secondary-button { min-height: 38px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding: 0 14px; border: 1px solid transparent; border-radius: 11px; font-size: 10px; font-weight: 600; white-space: nowrap; transition: background-color 140ms ease, color 140ms ease, border-color 140ms ease, transform 140ms ease; }
 .primary-button { background: var(--accent); color: #fff; }
 .primary-button:hover { background: var(--accent-hover); }
@@ -125,6 +130,9 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 3px solid 
 .profile-card:nth-child(6n) .avatar { background: #dff0d9; color: #477a39; }
 .seen-pill { min-height: 27px; padding: 3px 7px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--muted); font-size: 8px; white-space: nowrap; }
 .seen-pill.seen { background: var(--accent-soft); color: var(--accent); }
+.card-top-actions { display: flex; align-items: center; gap: 5px; }
+.edit-pill { min-height: 27px; padding: 3px 8px; border: 1px solid var(--line-strong); border-radius: 999px; background: var(--surface-raised); color: var(--accent); font-size: 8px; font-weight: 600; }
+.edit-pill:hover { border-color: var(--accent); background: var(--accent-soft); }
 .profile-card h3 { overflow-wrap: anywhere; margin: 12px 0 0; font-size: 12px; font-weight: 600; letter-spacing: -.02em; }
 .profile-links { display: flex; flex-wrap: wrap; gap: 6px 10px; margin-top: 8px; }
 .profile-links a { color: var(--accent); font-size: 9px; font-weight: 500; text-decoration: none; }
@@ -150,6 +158,11 @@ footer { min-height: 60px; display: flex; align-items: center; justify-content: 
 .footer-brand { gap: 6px; font-size: 11px; }
 .footer-brand .brand-mark { width: 20px; height: 20px; }
 .footer-brand span { color: var(--accent); }
+.pydrop-link { min-height: 36px; display: inline-flex; align-items: center; gap: 8px; padding: 4px 11px 4px 6px; border: 1px solid var(--line-strong); border-radius: 999px; background: var(--surface-raised); color: var(--ink-soft); font-size: 9px; text-decoration: none; transition: border-color 140ms ease, color 140ms ease, transform 140ms ease; }
+.pydrop-link:hover { transform: translateY(-1px); border-color: var(--accent); color: var(--accent); }
+.pydrop-link img { width: 25px; height: 25px; flex: 0 0 auto; object-fit: contain; }
+.pydrop-link strong { color: var(--ink); font-weight: 700; }
+.pydrop-arrow { color: var(--accent); font-size: 12px; }
 .github-button { display: inline-flex; align-items: center; gap: 6px; color: var(--ink-soft); font-size: 10px; font-weight: 500; text-decoration: none; }
 .github-button:hover { color: var(--accent); }
 .github-button svg { width: 16px; height: 16px; fill: currentColor; }
@@ -164,6 +177,7 @@ footer { min-height: 60px; display: flex; align-items: center; justify-content: 
 .close-button { position: absolute; top: 10px; right: 12px; width: 32px; height: 32px; border: 1px solid var(--line); border-radius: 50%; background: var(--surface); color: var(--muted); font-size: 20px; }
 
 @keyframes card-arrive { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes success-arrive { from { opacity: 0; transform: translateY(9px) scale(.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
 @media (max-width: 900px) { .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media (max-width: 640px) {
   .page { width: calc(100% - 32px); }
@@ -195,13 +209,20 @@ footer { min-height: 60px; display: flex; align-items: center; justify-content: 
   .avatar { width: 32px; height: 32px; border-radius: 11px; font-size: 10px; }
   .seen-pill { min-height: 24px; padding-inline: 5px; font-size: 7px; }
   .profile-card h3 { font-size: 10px; }
+  .card-top-actions { gap: 3px; }
   .profile-links { gap: 5px 7px; }
   .profile-links a { font-size: 8px; }
   .card-footer { font-size: 7px; }
   .card-link-icon { width: 17px; height: 17px; font-size: 8px; }
   footer { min-height: 56px; gap: 8px; font-size: 8px; }
   .footer-brand { font-size: 9px; }
+  .pydrop-link { min-height: 32px; gap: 5px; padding: 3px 8px 3px 4px; font-size: 8px; }
+  .pydrop-link img { width: 22px; height: 22px; }
   .github-button { gap: 4px; font-size: 9px; }
+  .form-bottom { flex-wrap: wrap; }
+  .form-bottom small { flex: 1 1 100%; order: 3; }
+  footer { flex-wrap: wrap; padding-block: 8px; }
+  .pydrop-link { order: 3; flex: 1 1 100%; justify-content: center; }
 }
 @media (max-width: 360px) {
   .page { width: calc(100% - 24px); }
