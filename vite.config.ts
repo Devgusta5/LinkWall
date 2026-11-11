@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react'
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 
 const localApi: Plugin = {
-  name: 'linkmural-local-api',
+  name: 'linkwall-local-api',
   configureServer(server) {
     server.middlewares.use((req, res, next) => {
       if (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN) return next()

@@ -1,4 +1,4 @@
-# LinkMural
+# LinkWall
 
 <p align="center">
   <strong>Boas conexões começam aqui.</strong><br />
@@ -14,7 +14,7 @@
 
 ## ✨ O que é
 
-O LinkMural ajuda uma turma a se conectar durante uma aula, apresentação ou evento. A pessoa organizadora cria uma sala com nome e código; os participantes entram pelo convite e publicam seus links profissionais.
+O LinkWall ajuda uma turma a se conectar durante uma aula, apresentação ou evento. A pessoa organizadora cria uma sala com nome e código; os participantes entram pelo convite e publicam seus links profissionais.
 
 Não é necessário criar conta. Cada sala é temporária, tem um prazo de expiração e pode ser encerrada pela pessoa organizadora.
 
@@ -84,17 +84,17 @@ node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"
 
 ## ⚙️ Configuração
 
-Configure as variáveis no ambiente local e no projeto LinkMural da Vercel. Selecione os ambientes de Preview e Production necessários e faça um novo deploy após qualquer alteração.
+Configure as variáveis no ambiente local e no projeto LinkWall da Vercel. Selecione os ambientes de Preview e Production necessários e faça um novo deploy após qualquer alteração.
 
 | Variável | Obrigatória | Descrição |
 | --- | :---: | --- |
 | `UPSTASH_REDIS_REST_URL` | Sim | URL REST do banco Upstash compartilhado já configurado para o projeto. |
 | `UPSTASH_REDIS_REST_TOKEN` | Sim | Token REST do mesmo banco Upstash. |
-| `ROOM_SESSION_SECRET` | Sim | Segredo exclusivo do LinkMural, com pelo menos 32 caracteres. Fica somente no servidor. |
+| `ROOM_SESSION_SECRET` | Sim | Segredo exclusivo do LinkWall, com pelo menos 32 caracteres. Fica somente no servidor. |
 | `ROOM_DEFAULT_TTL_SECONDS` | Não | Duração padrão da sala. Padrão: `86400` (24 horas); permitido: 600 a 604800 segundos. |
 | `ABLY_API_KEY` | Não | Chave privada do Ably. Sem ela, o mural usa atualização periódica em vez de eventos ao vivo. |
 
-> **Redis compartilhado:** toda chave criada pelo LinkMural começa com `linkwall:`. O projeto não executa operações globais de limpeza e não deve ler, modificar ou apagar chaves de outros projetos.
+> **Redis compartilhado:** toda chave criada pelo LinkWall começa com `linkwall:`. O projeto não executa operações globais de limpeza e não deve ler, modificar ou apagar chaves de outros projetos.
 
 ## 🔐 Segurança e privacidade
 
@@ -105,7 +105,7 @@ Configure as variáveis no ambiente local e no projeto LinkMural da Vercel. Sele
 - Tokens Ably emitidos pelo servidor só permitem `subscribe` ao canal da sala correspondente. A chave privada não é enviada ao navegador.
 - A credencial administrativa é diferente do código de entrada; somente seu hash é salvo no Redis.
 - Tentativas de criar salas, entrar com códigos e publicar perfis têm limites por IP. Os identificadores de IP usados nos limites são hasheados.
-- URLs de LinkedIn e GitHub são verificadas no backend. O LinkMural não faz scraping desses serviços.
+- URLs de LinkedIn e GitHub são verificadas no backend. O LinkWall não faz scraping desses serviços.
 - Os links publicados ficam visíveis aos participantes da sala. **Qualquer pessoa que obtenha o convite pode entrar enquanto a sala estiver ativa**; use o mural para contatos de turma, não para informações confidenciais.
 
 O Redis mantém as salas e os perfis até o TTL mesmo quando uma sala é encerrada. O estado inativo bloqueia imediatamente novas entradas, leituras e publicações; os dados são removidos pela expiração automática.
@@ -144,4 +144,4 @@ vite.config.ts       API local para desenvolvimento com Vite
 
 ## Fora do escopo
 
-O LinkMural não oferece contas individuais, aprovação de participantes, chat, presença online, moderação avançada nem privacidade forte. O código compartilhado é a forma de entrada da turma e deve ser distribuído apenas ao grupo desejado.
+O LinkWall não oferece contas individuais, aprovação de participantes, chat, presença online, moderação avançada nem privacidade forte. O código compartilhado é a forma de entrada da turma e deve ser distribuído apenas ao grupo desejado.
