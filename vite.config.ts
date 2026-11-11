@@ -1,14 +1,22 @@
-import { defineConfig, loadEnv } from 'vite'
+import { defineConfig, loadEnv, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
-import type { IncomingMessage, ServerResponse } from 'node:http'
+import type { VercelRequest, VercelResponse } from '@vercel/node'
 
-const localApi = {
+const localApi: Plugin = {
   name: 'linkmural-local-api',
-  configureServer(server: { middlewares: { use: (handler: (req: IncomingMessage, res: ServerResponse, next: () => void) => void) => void } }) {
+  configureServer(server) {
     server.middlewares.use((req, res, next) => {
       if (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN) return next()
       const path = new URL(req.url || '/', 'http://localhost').pathname
-      const handlerPath = path === '/api/profiles' ? './api/profiles' : path === '/api/token' ? './api/token' : null
+      const routes: Record<string, string> = {
+        '/api/profiles': './api/profiles',
+        '/api/rooms': './api/rooms',
+        '/api/rooms/join': './api/rooms/join',
+        '/api/rooms/current': './api/rooms/current',
+        '/api/rooms/close': './api/rooms/close',
+        '/api/rooms/ably-token': './api/rooms/ably-token',
+      }
+      const handlerPath = routes[path]
       if (!handlerPath) return next()
 
       void (async () => {
@@ -48,7 +56,7 @@ const localApi = {
           },
         }
         const { default: handler } = await server.ssrLoadModule(handlerPath)
-        await handler(req, response)
+        await handler(req as VercelRequest, response as unknown as VercelResponse)
       })().catch(error => {
         console.error('Local API error:', error instanceof Error ? error.message : 'unknown')
         if (!res.headersSent) {
@@ -62,7 +70,7 @@ const localApi = {
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
-  for (const key of ['UPSTASH_REDIS_REST_URL', 'UPSTASH_REDIS_REST_TOKEN', 'ABLY_API_KEY']) {
+  for (const key of ['UPSTASH_REDIS_REST_URL', 'UPSTASH_REDIS_REST_TOKEN', 'ABLY_API_KEY', 'ROOM_SESSION_SECRET', 'ROOM_DEFAULT_TTL_SECONDS']) {
     if (env[key]) process.env[key] = env[key]
   }
   return { plugins: [react(), ...(mode === 'development' ? [localApi] : [])] }
