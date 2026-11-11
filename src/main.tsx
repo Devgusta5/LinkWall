@@ -30,7 +30,7 @@ async function api<T>(path: string, body?: unknown, roomId?: string): Promise<T>
 }
 
 function App() {
-  const [theme, setTheme] = useState<'light' | 'dark'>(() => localStorage.getItem('linkwall:theme') === 'dark' ? 'dark' : 'light')
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => localStorage.getItem('linkwall:theme-choice') === 'light' ? 'light' : 'dark')
   const [page, setPage] = useState<'loading' | 'lobby' | 'active' | 'closed'>('loading')
   const [room, setRoom] = useState<RoomSession | null>(null)
   const [roomName, setRoomName] = useState('')
@@ -58,7 +58,7 @@ function App() {
   useEffect(() => {
     document.documentElement.dataset.theme = theme
     document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme === 'dark' ? '#050608' : '#dceaff')
-    localStorage.setItem('linkwall:theme', theme)
+    localStorage.setItem('linkwall:theme-choice', theme)
   }, [theme])
 
   useEffect(() => {
@@ -314,7 +314,11 @@ function App() {
       {room.isOrganizer && adminCredential && <div className="close-room-bar"><span>Sala temporária · expira em {new Date(room.expiresAt).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</span><button className="close-room-button" onClick={() => void closeRoom()} disabled={busy}>Encerrar sala</button></div>}
     </>}
 
-    <footer><a className="brand footer-brand" href="/" aria-label="LinkWall, início"><img className="brand-mark" src="/mark.svg" alt="" /> LinkWall</a><a className="pydrop-link" href="https://pydrop.vercel.app/" target="_blank" rel="noopener noreferrer"><img src="/pydrop-logo.png" alt="" /><span>Experimente também o <strong>PyDrop</strong></span><span className="pydrop-arrow" aria-hidden="true">↗</span></a><a className="github-button" href="https://github.com/Devgusta5" target="_blank" rel="noopener noreferrer" aria-label="GitHub do criador: Devgusta5"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 .7a11.3 11.3 0 0 0-3.57 22.02c.57.1.77-.25.77-.55v-2.12c-3.14.68-3.8-1.33-3.8-1.33-.52-1.3-1.27-1.65-1.27-1.65-1.03-.7.08-.68.08-.68 1.14.08 1.74 1.17 1.74 1.17 1.01 1.73 2.65 1.23 3.3.94.1-.73.4-1.23.72-1.52-2.5-.29-5.14-1.25-5.14-5.58 0-1.23.44-2.23 1.16-3.02-.12-.29-.5-1.43.11-2.98 0 0 .95-.3 3.11 1.15a10.8 10.8 0 0 1 5.66 0c2.16-1.46 3.1-1.15 3.1-1.15.62 1.55.23 2.69 1.15 3.02 0 4.34-2.65 5.29-5.17 5.57.41.36.77 1.04.77 2.1v3.12c0 .3.2.66.78.55A11.3 11.3 0 0 0 12 .7Z" /></svg><span>GitHub</span></a></footer>
+    <footer>
+      <div className="footer-about"><a className="brand footer-brand" href="/" aria-label="LinkWall, início"><img className="brand-mark" src="/mark.svg" alt="" /> LinkWall</a><p>Conecte sua turma em um mural simples de perfis e links.</p></div>
+      <ul className="footer-features" aria-label="Funcionalidades"><li>Salas temporárias</li><li>Convite por código e QR</li><li>Perfis com links profissionais</li><li>Atualização em tempo real</li></ul>
+      <div className="footer-links"><a className="pydrop-link" href="https://pydrop.vercel.app/" target="_blank" rel="noopener noreferrer"><img src="/pydrop-logo.png" alt="" /><span>Experimente também o <strong>PyDrop</strong></span><span className="pydrop-arrow" aria-hidden="true">↗</span></a><a className="github-button" href="https://github.com/Devgusta5" target="_blank" rel="noopener noreferrer" aria-label="GitHub de Devgusta5"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 .7a11.3 11.3 0 0 0-3.57 22.02c.57.1.77-.25.77-.55v-2.12c-3.14.68-3.8-1.33-3.8-1.33-.52-1.3-1.27-1.65-1.27-1.65-1.03-.7.08-.68.08-.68 1.14.08 1.74 1.17 1.74 1.17 1.01 1.73 2.65 1.23 3.3.94.1-.73.4-1.23.72-1.52-2.5-.29-5.14-1.25-5.14-5.58 0-1.23.44-2.23 1.16-3.02-.12-.29-.5-1.43.11-2.98 0 0 .95-.3 3.11 1.15a10.8 10.8 0 0 1 5.66 0c2.16-1.46 3.1-1.15 3.1-1.15.62 1.55.23 2.69.11 2.98.72.79 1.15 1.79 1.15 3.02 0 4.34-2.65 5.29-5.17 5.57.41.36.77 1.04.77 2.1v3.12c0 .3.2.66.78.55A11.3 11.3 0 0 0 12 .7Z" /></svg><span>Devgusta5</span></a></div>
+    </footer>
     {toast && <div className="toast" role="status">{toast}</div>}
     {qrOpen && <div className="modal-backdrop" onClick={() => setQrOpen(false)}><div className="qr-modal" role="dialog" aria-modal="true" aria-label="QR Code do convite" onClick={event => event.stopPropagation()}><button className="close-button" onClick={() => setQrOpen(false)} aria-label="Fechar">×</button><div className="wall-kicker">CONVITE DA SALA</div><h2>Aponte a câmera<br />e entre no mural.</h2><img src={qrData} alt="QR Code para entrar nesta sala" /><button className="primary-button" onClick={() => void copy(inviteUrl, 'Convite copiado!')}>Copiar convite <span>↗</span></button></div></div>}
   </main>

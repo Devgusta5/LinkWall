@@ -154,10 +154,13 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 3px solid 
 html[data-theme="dark"] .close-room-button { color: #ff9ca6; }
 .close-room-button:hover { border-color: #c24141; }
 .close-room-button:disabled { cursor: wait; opacity: .6; }
-footer { min-height: 60px; display: flex; align-items: center; justify-content: space-between; gap: 12px; border-top: 1px solid var(--line); color: var(--muted); font-size: 9px; }
-.footer-brand { gap: 6px; font-size: 11px; }
-.footer-brand .brand-mark { width: 20px; height: 20px; }
-.footer-brand span { color: var(--accent); }
+footer { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) auto; align-items: center; gap: 24px; margin-top: 16px; padding: 20px 0; border-top: 1px solid var(--line); color: var(--muted); font-size: 9px; }
+.footer-about p { max-width: 300px; margin: 7px 0 0; color: var(--muted); font-size: 10px; }
+.footer-brand { gap: 6px; font-size: 14px; }
+.footer-brand .brand-mark { width: 23px; height: 23px; }
+.footer-features { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px 14px; margin: 0; padding: 0; list-style: none; color: var(--ink-soft); font-size: 9px; }
+.footer-features li::before { content: "•"; margin-right: 6px; color: var(--accent); }
+.footer-links { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
 .pydrop-link { min-height: 36px; display: inline-flex; align-items: center; gap: 8px; padding: 4px 11px 4px 6px; border: 1px solid var(--line-strong); border-radius: 999px; background: var(--surface-raised); color: var(--ink-soft); font-size: 9px; text-decoration: none; transition: border-color 140ms ease, color 140ms ease, transform 140ms ease; }
 .pydrop-link:hover { transform: translateY(-1px); border-color: var(--accent); color: var(--accent); }
 .pydrop-link img { width: 25px; height: 25px; flex: 0 0 auto; object-fit: contain; }
@@ -214,15 +217,16 @@ footer { min-height: 60px; display: flex; align-items: center; justify-content: 
   .profile-links a { font-size: 8px; }
   .card-footer { font-size: 7px; }
   .card-link-icon { width: 17px; height: 17px; font-size: 8px; }
-  footer { min-height: 56px; gap: 8px; font-size: 8px; }
-  .footer-brand { font-size: 9px; }
+  footer { grid-template-columns: 1fr; align-items: start; gap: 13px; padding-block: 16px; }
+  .footer-brand { font-size: 12px; }
+  .footer-about p { max-width: none; margin-top: 5px; }
+  .footer-features { max-width: 340px; }
+  .footer-links { align-items: flex-start; flex-direction: row; flex-wrap: wrap; }
   .pydrop-link { min-height: 32px; gap: 5px; padding: 3px 8px 3px 4px; font-size: 8px; }
   .pydrop-link img { width: 22px; height: 22px; }
   .github-button { gap: 4px; font-size: 9px; }
   .form-bottom { flex-wrap: wrap; }
   .form-bottom small { flex: 1 1 100%; order: 3; }
-  footer { flex-wrap: wrap; padding-block: 8px; }
-  .pydrop-link { order: 3; flex: 1 1 100%; justify-content: center; }
 }
 @media (max-width: 360px) {
   .page { width: calc(100% - 24px); }

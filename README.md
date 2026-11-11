@@ -37,7 +37,7 @@ flowchart LR
 
 ## 🎨 Identidade visual
 
-A interface usa **Poppins**, uma paleta azul no tema claro e tons quase pretos no tema escuro. Cartões arredondados, acentos azuis e espaçamento leve deixam o mural legível em desktop e celular. O botão de tema salva a preferência neste navegador.
+A interface usa **Poppins**, com o tema escuro como padrão, além de uma paleta azul opcional no tema claro. Cartões arredondados, acentos azuis e espaçamento leve deixam o mural legível em desktop e celular. O botão de tema salva a preferência neste navegador.
 
 | Uso | Tema claro | Tema escuro |
 | --- | --- | --- |
