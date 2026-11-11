@@ -25,6 +25,7 @@ async function api<T>(path: string, body?: unknown, roomId?: string): Promise<T>
 }
 
 function App() {
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => localStorage.getItem('linkwall:theme') === 'dark' ? 'dark' : 'light')
   const [page, setPage] = useState<'loading' | 'lobby' | 'active' | 'closed'>('loading')
   const [room, setRoom] = useState<RoomSession | null>(null)
   const [roomName, setRoomName] = useState('')
@@ -46,6 +47,12 @@ function App() {
   const [qrData, setQrData] = useState('')
   const unseenCount = profiles.filter(profile => !seen.has(profile.id)).length
   const inviteUrl = roomCode ? `${location.origin}${location.pathname}?code=${encodeURIComponent(roomCode)}` : location.href
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme === 'dark' ? '#050608' : '#dceaff')
+    localStorage.setItem('linkwall:theme', theme)
+  }, [theme])
 
   function notify(message: string) { setToast(message); window.setTimeout(() => setToast(''), 3000) }
   function updateSeen(next: Set<string>) {
@@ -207,7 +214,7 @@ function App() {
   return <main className="page">
     <header className="topbar">
       <a className="brand" href="/"><span className="brand-mark">↗</span> LinkMural</a>
-      {page === 'active' && room && <div className="top-actions"><span className={`connection ${connected ? 'online' : ''}`}><i />{connected ? 'Ao vivo' : 'Atualizando'}</span><button className="icon-button" onClick={() => void showQr()} aria-label="Mostrar QR Code do convite">▦</button><button className="share-button" onClick={() => void copy(inviteUrl, 'Convite copiado!')}>Copiar convite <span>↗</span></button></div>}
+      <div className="top-actions">{page === 'active' && room && <><span className={`connection ${connected ? 'online' : ''}`}><i />{connected ? 'Ao vivo' : 'Atualizando'}</span><button className="icon-button" onClick={() => void showQr()} aria-label="Mostrar QR Code do convite">▦</button><button className="share-button" onClick={() => void copy(inviteUrl, 'Convite copiado!')}>Copiar convite <span>↗</span></button></>}<button className="theme-toggle" onClick={() => setTheme(value => value === 'light' ? 'dark' : 'light')} aria-label={theme === 'light' ? 'Ativar tema escuro' : 'Ativar tema claro'} title="Alternar tema">{theme === 'light' ? '☾' : '☼'}</button></div>
     </header>
 
     {page === 'loading' && <section className="hero"><p className="intro">Carregando a sala…</p></section>}

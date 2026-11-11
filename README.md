@@ -1,57 +1,147 @@
 # LinkMural
 
-Mural temporário e sem cadastro para compartilhar perfis do LinkedIn em uma turma. A pessoa organizadora cria uma sala com nome, código aleatório e convite. Participantes entram com o código; a sala expira automaticamente.
+<p align="center">
+  <strong>Boas conexões começam aqui.</strong><br />
+  Um mural temporário para uma turma compartilhar perfis profissionais em um só lugar.
+</p>
 
-## Executar localmente
+<p align="center">
+  <a href="https://github.com/Devgusta5/LinkWall">Repositório</a> ·
+  <a href="https://github.com/Devgusta5">GitHub do criador</a>
+</p>
 
-```sh
-npm install
+---
+
+## ✨ O que é
+
+O LinkMural ajuda uma turma a se conectar durante uma aula, apresentação ou evento. A pessoa organizadora cria uma sala com nome e código; os participantes entram pelo convite e publicam seus links profissionais.
+
+Não é necessário criar conta. Cada sala é temporária, tem um prazo de expiração e pode ser encerrada pela pessoa organizadora.
+
+## 🧭 Como funciona
+
+```mermaid
+flowchart LR
+    A[Organizador cria uma sala] --> B[Compartilha código ou convite]
+    B --> C[Participantes entram]
+    C --> D[Publicam nome e links]
+    D --> E[Perfis aparecem no mural]
+    E --> F[Sala expira ou é encerrada]
+```
+
+1. Crie a sala e escolha um nome.
+2. Compartilhe o código ou o link/QR do convite.
+3. Cada participante entra e publica nome e perfil do LinkedIn. GitHub e outra rede social são opcionais.
+4. Explore os cartões, filtre os perfis e marque conexões como vistas.
+5. A sala é encerrada pela organização ou expira automaticamente.
+
+## 🎨 Identidade visual
+
+A interface usa **Poppins**, uma paleta azul no tema claro e tons quase pretos no tema escuro. Cartões arredondados, acentos azuis e espaçamento leve deixam o mural legível em desktop e celular. O botão de tema salva a preferência neste navegador.
+
+| Uso | Tema claro | Tema escuro |
+| --- | --- | --- |
+| Fundo | Azul suave `#DCEAFF` | Preto `#050608` |
+| Superfícies | Branco e azul muito claro | Grafite `#0C0F14` / `#10141B` |
+| Texto | Azul-marinho | Branco suave |
+| Destaque | Azul `#155CE0` | Azul `#4D8DFF` |
+
+## 🧰 Tecnologias
+
+- **React + TypeScript + Vite** para a interface.
+- **Vercel Functions** para as rotas da API.
+- **Upstash Redis** para salas e perfis temporários.
+- **Ably** para avisar participantes sobre novos perfis em tempo real; sem Ably, a página atualiza por consulta periódica.
+- **QRCode** para gerar um convite escaneável da sala.
+
+## 🚀 Executar localmente
+
+Requer Node.js instalado.
+
+```bash
+npm ci
+```
+
+Crie `.env.local` a partir do exemplo:
+
+```bash
+cp .env.example .env.local
+```
+
+Preencha as variáveis descritas abaixo e inicie o servidor:
+
+```bash
 npm run dev
 ```
 
-Para criar salas localmente, copie `.env.example` para `.env.local`, preencha as variáveis e reinicie o Vite. Sem Redis e segredo de sessão, a API não cria nem abre salas.
+Abra a URL local informada pelo Vite. A API precisa de Redis e de `ROOM_SESSION_SECRET` para criar e validar salas.
 
-Gere um segredo aleatório exclusivo para `ROOM_SESSION_SECRET` sem enviá-lo no chat. Com Node.js:
+Para gerar um segredo de sessão forte localmente, sem compartilhá-lo:
 
-```sh
+```bash
 node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"
 ```
 
-## Variáveis
+## ⚙️ Configuração
 
-- `UPSTASH_REDIS_REST_URL` e `UPSTASH_REDIS_REST_TOKEN`: credenciais do banco Upstash Redis já usado pelo projeto.
-- `ROOM_SESSION_SECRET`: segredo aleatório de pelo menos 32 caracteres para assinar sessões. Nunca vai ao navegador.
-- `ROOM_DEFAULT_TTL_SECONDS`: duração padrão; 86400 (24 horas). A API aceita de 600 a 604800 segundos.
-- `ABLY_API_KEY`: opcional para eventos ao vivo. A chave fica no servidor; o navegador recebe um token com `subscribe` apenas para o canal da sala. Sem essa variável, o cliente atualiza por polling a cada 15 segundos.
+Configure as variáveis no ambiente local e no projeto LinkMural da Vercel. Selecione os ambientes de Preview e Production necessários e faça um novo deploy após qualquer alteração.
 
-No projeto LinkMural da Vercel, configure essas variáveis em **Settings → Environment Variables**, selecionando Production e Preview conforme necessário. `ROOM_SESSION_SECRET` é a única variável nova em relação à configuração Redis/Ably existente. Faça novo deploy após atualizar variáveis.
+| Variável | Obrigatória | Descrição |
+| --- | :---: | --- |
+| `UPSTASH_REDIS_REST_URL` | Sim | URL REST do banco Upstash compartilhado já configurado para o projeto. |
+| `UPSTASH_REDIS_REST_TOKEN` | Sim | Token REST do mesmo banco Upstash. |
+| `ROOM_SESSION_SECRET` | Sim | Segredo exclusivo do LinkMural, com pelo menos 32 caracteres. Fica somente no servidor. |
+| `ROOM_DEFAULT_TTL_SECONDS` | Não | Duração padrão da sala. Padrão: `86400` (24 horas); permitido: 600 a 604800 segundos. |
+| `ABLY_API_KEY` | Não | Chave privada do Ably. Sem ela, o mural usa atualização periódica em vez de eventos ao vivo. |
 
-## Segurança e armazenamento
+> **Redis compartilhado:** toda chave criada pelo LinkMural começa com `linkwall:`. O projeto não executa operações globais de limpeza e não deve ler, modificar ou apagar chaves de outros projetos.
 
-- As chaves deste projeto no Redis sempre começam com `linkwall:`. Uma sala usa `linkwall:room:<roomId>`, `linkwall:room-code:<sha256>` e `linkwall:room:<roomId>:profiles` (mais o índice de duplicatas). Limites de tentativas usam `linkwall:rate-limit:`. O código e a credencial administrativa não são salvos em claro.
-- O código de entrada tem 10 caracteres aleatórios e é armazenado no Redis somente como hash. O ID interno da sala é outro valor aleatório.
-- A sessão é HMAC assinada e enviada em cookie `HttpOnly`, `SameSite=Lax`, `Secure` em produção, com expiração igual à sala. Há um cookie por sala, então abas diferentes podem participar de salas diferentes.
-- A API não usa IDs, códigos de canal ou permissões recebidos do cliente como autorização. O cabeçalho seletor de sala só escolhe o cookie candidato; o servidor valida a assinatura, compara o ID dentro da sessão e confirma que a sala continua ativa.
-- A credencial administrativa é aleatória, armazenada no Redis apenas como hash e mantida no `sessionStorage` da aba organizadora para permitir encerramento. Se essa aba e seu armazenamento forem perdidos, a sala ainda expira sozinha.
-- Código inválido, expirado ou sala encerrada recebem a mesma resposta. Limites: 12 tentativas de entrada/minuto por IP, 5 criações/minuto e 8 publicações/minuto. O IP usado para limitar tentativas é hasheado antes de virar chave Redis.
-- Encerrar marca a sala inativa imediatamente. Os dados permanecem até o TTL, mas as APIs deixam de permitir leitura, publicação ou novo token Ably.
-- Qualquer pessoa com o código compartilhado pode entrar enquanto a sala estiver ativa. É controle contra acesso casual, não privacidade forte.
+## 🔐 Segurança e privacidade
 
-## API
+- O código de acesso é aleatório, normalizado no servidor e armazenado no Redis somente como hash.
+- O `roomId` é independente do código e não autoriza acesso por si só.
+- Depois de entrar, o navegador recebe um cookie temporário `HttpOnly`, validado em cada rota protegida. Em produção, o cookie também usa `Secure` e `SameSite=Lax`.
+- A sessão limita leitura e publicação à sala autorizada pelo servidor. O navegador não escolhe canal nem permissão Ably.
+- Tokens Ably emitidos pelo servidor só permitem `subscribe` ao canal da sala correspondente. A chave privada não é enviada ao navegador.
+- A credencial administrativa é diferente do código de entrada; somente seu hash é salvo no Redis.
+- Tentativas de criar salas, entrar com códigos e publicar perfis têm limites por IP. Os identificadores de IP usados nos limites são hasheados.
+- URLs de LinkedIn e GitHub são verificadas no backend. O LinkMural não faz scraping desses serviços.
+- Os links publicados ficam visíveis aos participantes da sala. **Qualquer pessoa que obtenha o convite pode entrar enquanto a sala estiver ativa**; use o mural para contatos de turma, não para informações confidenciais.
 
-- `POST /api/rooms`: cria sala e devolve código e credencial administrativa uma única vez.
-- `POST /api/rooms/join`: valida código e inicia sessão participante.
-- `GET /api/rooms/current`: consulta a sala da sessão atual.
-- `GET|POST /api/profiles`: lista ou publica perfis da sala autenticada.
-- `POST /api/rooms/ably-token`: emite token Ably de leitura da sala autenticada.
-- `POST /api/rooms/close`: encerra a sala com sessão organizadora e credencial administrativa.
+O Redis mantém as salas e os perfis até o TTL mesmo quando uma sala é encerrada. O estado inativo bloqueia imediatamente novas entradas, leituras e publicações; os dados são removidos pela expiração automática.
 
-Todas as rotas de dados validam a sessão no servidor; nenhuma recebe `roomId` no corpo como prova de acesso. Redis é a fonte persistente, Ably apenas distribui eventos e o estado visto/não visto fica no navegador.
+## 🗂️ Rotas principais
 
-## Verificação
+| Método | Rota | Ação |
+| --- | --- | --- |
+| `POST` | `/api/rooms` | Criar sala, código de acesso e sessão organizadora. |
+| `POST` | `/api/rooms/join` | Validar código e iniciar sessão de participante. |
+| `GET` | `/api/rooms/current` | Consultar a sala da sessão atual. |
+| `GET` / `POST` | `/api/profiles` | Listar ou publicar perfis da sala autorizada. |
+| `POST` | `/api/rooms/ably-token` | Emitir token Ably limitado à sala. |
+| `POST` | `/api/rooms/close` | Encerrar a sala com a credencial administrativa. |
 
-```sh
+## 🧪 Build e deploy
+
+```bash
 npm run build
 ```
 
-O build executa o TypeScript e a compilação do Vite. Para o teste entre dispositivos/contas, use a implantação com Redis/Ably configurados: crie salas distintas, entre com dois navegadores, publique em cada uma e confirme o isolamento, o rate limit e o bloqueio após encerrar.
+O comando verifica os tipos TypeScript e gera a versão de produção do Vite. As rotas `api/` são executadas como funções da Vercel.
+
+Depois de configurar as variáveis na Vercel, publique um novo deploy e valide o fluxo com dois navegadores: entrar na mesma sala, publicar um perfil e conferir a atualização. Também confira que códigos inválidos falham, salas distintas não compartilham perfis e o encerramento bloqueia novas publicações.
+
+## 📁 Organização do projeto
+
+```text
+api/                 Rotas de salas, perfis e autenticação Ably
+lib/room-server.ts   Sessões, validação, Redis e rate limit
+src/main.tsx         Interface e interações do mural
+src/style.css        Identidade visual e layout responsivo
+vite.config.ts       API local para desenvolvimento com Vite
+.env.example         Modelo das variáveis sem segredos
+```
+
+## Fora do escopo
+
+O LinkMural não oferece contas individuais, aprovação de participantes, chat, presença online, moderação avançada nem privacidade forte. O código compartilhado é a forma de entrada da turma e deve ser distribuído apenas ao grupo desejado.
