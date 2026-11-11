@@ -20,6 +20,26 @@ function validRoom(value: unknown): value is string {
   return typeof value === 'string' && /^[a-z0-9-]{1,48}$/.test(value)
 }
 
+function optionalHttpsUrl(value: unknown): string | undefined | null {
+  if (value === undefined || value === '') return undefined
+  if (typeof value !== 'string' || value.length > 300) return null
+  try {
+    const url = new URL(value.trim())
+    return url.protocol === 'https:' ? url.href : null
+  } catch { return null }
+}
+
+function optionalGithubUrl(value: unknown): string | undefined | null {
+  if (value === undefined || value === '') return undefined
+  if (typeof value !== 'string' || value.length > 300) return null
+  try {
+    const url = new URL(value.trim())
+    const login = url.pathname.match(/^\/([a-z\d](?:[a-z\d-]{0,37}[a-z\d])?)\/?$/i)?.[1]
+    if (url.protocol !== 'https:' || !['github.com', 'www.github.com'].includes(url.hostname.toLowerCase()) || !login) return null
+    return `https://github.com/${login}`
+  } catch { return null }
+}
+
 function redisUrl() {
   const base = process.env.UPSTASH_REDIS_REST_URL
   const token = process.env.UPSTASH_REDIS_REST_TOKEN
@@ -45,7 +65,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     catch { return res.status(503).json({ error: 'Mural indisponível. Verifique a configuração do Redis.' }) }
   }
   if (req.method !== 'POST') return res.status(405).json({ error: 'Método não permitido.' })
-  const { name, linkedinUrl } = req.body ?? {}
+  const { name, linkedinUrl, githubUrl: rawGithubUrl, socialUrl: rawSocialUrl } = req.body ?? {}
   if (typeof name !== 'string' || name.trim().length < 2 || name.trim().length > 64 || typeof linkedinUrl !== 'string' || linkedinUrl.length > 300) {
     return res.status(400).json({ error: 'Informe um nome (2 a 64 caracteres) e um link do LinkedIn.' })
   }
@@ -54,7 +74,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (url.protocol !== 'https:' || !/(^|\.)linkedin\.com$/i.test(url.hostname) || !/^\/(in|pub)\/[a-z0-9%_-]+/i.test(url.pathname)) {
     return res.status(400).json({ error: 'Use um link público de perfil do LinkedIn (linkedin.com/in/...).' })
   }
-  const profile = { id: crypto.randomUUID(), roomId: room, name: name.trim(), linkedinUrl: `https://www.linkedin.com${url.pathname.replace(/\/$/, '')}`, createdAt: Date.now() }
+  const githubUrl = optionalGithubUrl(rawGithubUrl)
+  const socialUrl = optionalHttpsUrl(rawSocialUrl)
+  if (githubUrl === null) return res.status(400).json({ error: 'Informe um link válido de perfil do GitHub.' })
+  if (socialUrl === null) return res.status(400).json({ error: 'O link da rede social precisa usar HTTPS.' })
+  const profile = { id: crypto.randomUUID(), roomId: room, name: name.trim(), linkedinUrl: `https://www.linkedin.com${url.pathname.replace(/\/$/, '')}`, githubUrl, socialUrl, createdAt: Date.now() }
   const ip = String(req.headers['x-forwarded-for'] ?? req.socket.remoteAddress ?? 'unknown').split(',')[0].trim()
   const rateKey = `linkwall:rate:${ip}:${Math.floor(Date.now() / 60000)}`
   try {

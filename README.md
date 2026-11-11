@@ -35,7 +35,7 @@ npm run build
 
 ## Implementado e configuração pendente
 
-- Interface responsiva, formulários, cartões, filtros e estado de leitura local.
+- Interface responsiva, formulários para nome/LinkedIn e links opcionais de GitHub e outra rede social, cartões, filtros e estado de leitura local.
 - Validação da URL no navegador e servidor, limite de campos, duplicatas, rate limit e TTL no Redis.
 - Token Ably restrito à leitura do canal da sala e polling de fallback.
 - QR Code e cópia do link.

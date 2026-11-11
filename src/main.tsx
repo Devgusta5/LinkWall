@@ -4,7 +4,7 @@ import * as Ably from 'ably'
 import QRCode from 'qrcode'
 import './style.css'
 
-type Profile = { id: string; roomId: string; name: string; linkedinUrl: string; createdAt: number }
+type Profile = { id: string; roomId: string; name: string; linkedinUrl: string; githubUrl?: string; socialUrl?: string; createdAt: number }
 type Filter = 'all' | 'unseen' | 'seen'
 const room = location.pathname.split('/').filter(Boolean).at(-1)?.toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 48) || 'turma'
 const seenKey = `linkmural:${room}:seen`
@@ -18,6 +18,8 @@ function App() {
   const [filter, setFilter] = useState<Filter>('all')
   const [name, setName] = useState('')
   const [url, setUrl] = useState('')
+  const [github, setGithub] = useState('')
+  const [social, setSocial] = useState('')
   const [busy, setBusy] = useState(false)
   const [localMode, setLocalMode] = useState(false)
   const [connected, setConnected] = useState(false)
@@ -76,10 +78,27 @@ function App() {
       if (normalized.protocol !== 'https:' || !/(^|\.)linkedin\.com$/i.test(normalized.hostname) || !/^\/(in|pub)\/[a-z0-9%_-]+/i.test(normalized.pathname)) throw new Error()
     } catch { notify('Cole um link válido de perfil do LinkedIn.'); return }
     if (trimmedName.length < 2 || trimmedName.length > 64) { notify('Seu nome deve ter entre 2 e 64 caracteres.'); return }
+    let githubUrl: string | undefined
+    if (github.trim()) {
+      try {
+        const profile = new URL(github.trim())
+        const login = profile.pathname.match(/^\/([a-z\d](?:[a-z\d-]{0,37}[a-z\d])?)\/?$/i)?.[1]
+        if (profile.protocol !== 'https:' || !['github.com', 'www.github.com'].includes(profile.hostname.toLowerCase()) || !login) throw new Error()
+        githubUrl = `https://github.com/${login}`
+      } catch { notify('Informe um link válido de perfil do GitHub.'); return }
+    }
+    let socialUrl: string | undefined
+    if (social.trim()) {
+      try {
+        const profile = new URL(social.trim())
+        if (profile.protocol !== 'https:') throw new Error()
+        socialUrl = profile.href
+      } catch { notify('O link da rede social deve começar com https://.'); return }
+    }
     setBusy(true)
     const linkedinUrl = `https://www.linkedin.com${normalized.pathname.replace(/\/$/, '')}`
     try {
-      const response = await fetch(`/api/profiles?room=${encodeURIComponent(room)}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: trimmedName, linkedinUrl }) })
+      const response = await fetch(`/api/profiles?room=${encodeURIComponent(room)}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: trimmedName, linkedinUrl, githubUrl, socialUrl }) })
       const data = await response.json() as { profile?: Profile; error?: string }
       if (!response.ok) throw new Error(data.error || 'Não foi possível publicar.')
       const profile = data.profile!
@@ -88,14 +107,14 @@ function App() {
       notify('Seu perfil entrou no mural!')
     } catch (error) {
       if (!localMode && (error instanceof TypeError || error instanceof SyntaxError)) {
-        const profile: Profile = { id: crypto.randomUUID(), roomId: room, name: trimmedName, linkedinUrl, createdAt: Date.now() }
+        const profile: Profile = { id: crypto.randomUUID(), roomId: room, name: trimmedName, linkedinUrl, githubUrl, socialUrl, createdAt: Date.now() }
         const current = readLocal()
         if (current.some(item => item.linkedinUrl.toLowerCase() === linkedinUrl.toLowerCase())) { notify('Esse perfil já está neste mural.'); setBusy(false); return }
         const next = [profile, ...current].slice(0, 500)
         localStorage.setItem(localKey, JSON.stringify(next)); setProfiles(next); setLocalMode(true); notify('Salvo neste navegador. Configure Redis para compartilhar com a turma.')
       } else notify(error instanceof Error ? error.message : 'Não foi possível publicar.')
     } finally { setBusy(false) }
-    setName(''); setUrl('')
+    setName(''); setUrl(''); setGithub(''); setSocial('')
   }
 
   async function share() {
@@ -123,7 +142,12 @@ function App() {
       <p className="intro">Publique seu perfil para se conectar com os colegas.</p>
       <form className="publish-card" onSubmit={publish}>
         <div className="form-heading"><div className="form-icon">＋</div><div><strong>Entre para o mural</strong><small>Leva menos de um minuto</small></div></div>
-        <div className="fields"><label>Seu nome<input value={name} onChange={event => setName(event.target.value)} maxLength={64} placeholder="Como podemos te chamar?" required /></label><label>Link do LinkedIn<input value={url} onChange={event => setUrl(event.target.value)} maxLength={300} type="url" placeholder="https://linkedin.com/in/seu-perfil" required /></label></div>
+        <div className="fields">
+          <label><span>Seu nome</span><input value={name} onChange={event => setName(event.target.value)} maxLength={64} placeholder="Como podemos te chamar?" required /></label>
+          <label><span>Link do LinkedIn</span><input value={url} onChange={event => setUrl(event.target.value)} maxLength={300} type="url" placeholder="https://linkedin.com/in/seu-perfil" required /></label>
+          <label><span>GitHub <small className="optional">opcional</small></span><input value={github} onChange={event => setGithub(event.target.value)} maxLength={300} type="url" placeholder="https://github.com/seu-usuario" /></label>
+          <label><span>Outra rede social <small className="optional">opcional</small></span><input value={social} onChange={event => setSocial(event.target.value)} maxLength={300} type="url" placeholder="https://instagram.com/seu-perfil" /></label>
+        </div>
         <div className="form-bottom"><small>Seu perfil ficará visível para quem tiver acesso a este mural.</small><button className="primary-button" disabled={busy}>{busy ? 'Publicando…' : 'Publicar perfil'} <span>→</span></button></div>
       </form>
       <div className="privacy"><span>♧</span> Sem cadastro. Sem complicação. Só boas conexões.</div>
@@ -132,9 +156,9 @@ function App() {
     <section className="wall">
       <div className="wall-heading"><div><h2>Perfis da turma <span className="count">{profiles.length}</span></h2></div><div className="unseen">{unseenCount} <span>não {unseenCount === 1 ? 'visto' : 'vistos'}</span></div></div>
       <div className="toolbar"><div className="filters" aria-label="Filtrar perfis">{([['all','Todos'],['unseen','Não vistos'],['seen','Vistos']] as [Filter,string][]).map(([value,label]) => <button key={value} className={filter === value ? 'active' : ''} onClick={() => setFilter(value)}>{label}{value === 'unseen' && unseenCount > 0 && <b>{unseenCount}</b>}</button>)}</div>{unseenCount > 0 && <button className="mark-all" onClick={() => updateSeen(new Set(profiles.map(profile => profile.id)))}>Marcar todos como vistos</button>}</div>
-      {visibleProfiles.length === 0 ? <div className="empty"><div className="empty-art"><span>↗</span><i /><i /><i /></div><h3>{profiles.length === 0 ? 'Seu lugar está reservado.' : 'Tudo em dia por aqui.'}</h3><p>{profiles.length === 0 ? 'Seja a primeira pessoa a compartilhar seu perfil com a turma.' : filter === 'unseen' ? 'Você já viu todos os perfis deste mural.' : 'Nenhum perfil encontrado neste filtro.'}</p></div> : <div className="grid">{visibleProfiles.map(profile => <article className={`profile-card ${seen.has(profile.id) ? 'is-seen' : ''}`} key={profile.id}><div className="card-top"><div className="avatar">{profile.name.trim().split(/\s+/).slice(0,2).map(part => part[0]).join('').toUpperCase()}</div><button className={`seen-pill ${seen.has(profile.id) ? 'seen' : ''}`} onClick={() => toggleSeen(profile.id)}>{seen.has(profile.id) ? '✓ Visto' : '○ Não visto'}</button></div><h3>{profile.name}</h3><a className="linkedin-link" href={profile.linkedinUrl} target="_blank" rel="noopener noreferrer">Ver perfil no LinkedIn <span>↗</span></a><div className="card-footer"><span>Conectando com a turma</span><span className="card-link-icon">in</span></div></article>)}</div>}
+      {visibleProfiles.length === 0 ? <div className="empty"><div className="empty-art"><span>↗</span><i /><i /><i /></div><h3>{profiles.length === 0 ? 'Seu lugar está reservado.' : 'Tudo em dia por aqui.'}</h3><p>{profiles.length === 0 ? 'Seja a primeira pessoa a compartilhar seu perfil com a turma.' : filter === 'unseen' ? 'Você já viu todos os perfis deste mural.' : 'Nenhum perfil encontrado neste filtro.'}</p></div> : <div className="grid">{visibleProfiles.map(profile => <article className={`profile-card ${seen.has(profile.id) ? 'is-seen' : ''}`} key={profile.id}><div className="card-top"><div className="avatar">{profile.name.trim().split(/\s+/).slice(0,2).map(part => part[0]).join('').toUpperCase()}</div><button className={`seen-pill ${seen.has(profile.id) ? 'seen' : ''}`} onClick={() => toggleSeen(profile.id)}>{seen.has(profile.id) ? '✓ Visto' : '○ Não visto'}</button></div><h3>{profile.name}</h3><div className="profile-links"><a href={profile.linkedinUrl} target="_blank" rel="noopener noreferrer">LinkedIn ↗</a>{profile.githubUrl && <a href={profile.githubUrl} target="_blank" rel="noopener noreferrer">GitHub ↗</a>}{profile.socialUrl && <a href={profile.socialUrl} target="_blank" rel="noopener noreferrer">Rede social ↗</a>}</div><div className="card-footer"><span>Conectando com a turma</span><span className="card-link-icon">in</span></div></article>)}</div>}
     </section>
-    <footer><a className="brand footer-brand" href="/">LinkMural <span>↗</span></a><span>Compartilhe o link da sala com a turma.</span></footer>
+    <footer><a className="brand footer-brand" href="/">LinkMural <span>↗</span></a><span>Compartilhe o link da sala com a turma.</span><a className="github-button" href="https://github.com/Devgusta5" target="_blank" rel="noopener noreferrer" aria-label="GitHub do criador: Devgusta5"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 .7a11.3 11.3 0 0 0-3.57 22.02c.57.1.77-.25.77-.55v-2.12c-3.14.68-3.8-1.33-3.8-1.33-.52-1.3-1.27-1.65-1.27-1.65-1.03-.7.08-.68.08-.68 1.14.08 1.74 1.17 1.74 1.17 1.01 1.73 2.65 1.23 3.3.94.1-.73.4-1.23.72-1.52-2.5-.29-5.14-1.25-5.14-5.58 0-1.23.44-2.23 1.16-3.02-.12-.29-.5-1.43.11-2.98 0 0 .95-.3 3.11 1.15a10.8 10.8 0 0 1 5.66 0c2.16-1.46 3.1-1.15 3.1-1.15.62 1.55.23 2.69.12 2.98.72.79 1.15 1.79 1.15 3.02 0 4.34-2.65 5.29-5.17 5.57.41.36.77 1.04.77 2.1v3.12c0 .3.2.66.78.55A11.3 11.3 0 0 0 12 .7Z" /></svg><span>GitHub</span></a></footer>
     {toast && <div className="toast" role="status">{toast}</div>}
     {qrOpen && <div className="modal-backdrop" onClick={() => setQrOpen(false)}><div className="qr-modal" role="dialog" aria-modal="true" aria-label="QR Code do mural" onClick={event => event.stopPropagation()}><button className="close-button" onClick={() => setQrOpen(false)} aria-label="Fechar">×</button><div className="wall-kicker">COMPARTILHE COM A TURMA</div><h2>Aponte a câmera<br />e vem pro mural.</h2><img src={qrData} alt="QR Code para abrir este mural" /><button className="primary-button" onClick={share}>Copiar link <span>↗</span></button></div></div>}
   </main>
