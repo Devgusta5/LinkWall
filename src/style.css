@@ -78,6 +78,7 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 3px solid 
 .room-name-field input::placeholder, .fields input::placeholder { color: var(--muted); opacity: .72; }
 .room-name-field input:focus, .fields input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent); }
 .fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.field-wide { grid-column: 1 / -1; }
 .fields label > span { display: flex; align-items: center; gap: 5px; }
 .optional { color: var(--muted); font-size: 9px; font-weight: 400; }
 .form-bottom { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 15px; padding-top: 12px; border-top: 1px solid var(--line); }
@@ -117,6 +118,11 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 3px solid 
 .filters b { margin-left: 4px; padding: 1px 5px; border-radius: 99px; background: var(--accent-soft); color: var(--accent); font-size: 8px; }
 .mark-all { padding: 5px 0; border: 0; border-bottom: 1px solid var(--line-strong); background: transparent; color: var(--accent); font-size: 9px; }
 .mark-all:hover { border-color: var(--accent); }
+.export-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 14px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+.export-bar p { margin: 0; color: var(--muted); font-size: 9px; }
+.export-bar > div { display: flex; flex: 0 0 auto; gap: 7px; }
+.export-bar .secondary-button { min-height: 32px; font-size: 9px; }
+.export-bar button:disabled { cursor: not-allowed; opacity: .55; }
 .grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); align-items: start; gap: 12px; }
 .profile-card { min-width: 0; padding: 13px; border: 1px solid var(--line); border-radius: 17px; background: var(--surface-raised); box-shadow: var(--card-shadow); animation: card-arrive 220ms ease both; transition: border-color 150ms ease, transform 150ms ease, opacity 150ms ease; }
 .profile-card:hover { transform: translateY(-2px); border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); }
@@ -137,6 +143,7 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 3px solid 
 .profile-links { display: flex; flex-wrap: wrap; gap: 6px 10px; margin-top: 8px; }
 .profile-links a { color: var(--accent); font-size: 9px; font-weight: 500; text-decoration: none; }
 .profile-links a:hover { text-decoration: underline; }
+.profile-contact { overflow-wrap: anywhere; margin: 8px 0 0; color: var(--ink-soft); font-size: 9px; }
 .card-footer { display: flex; align-items: center; justify-content: space-between; gap: 5px; margin-top: 12px; padding-top: 9px; border-top: 1px solid var(--line); color: var(--muted); font-size: 8px; }
 .card-link-icon { width: 20px; height: 20px; display: grid; flex: 0 0 auto; place-items: center; border-radius: 6px; background: var(--accent-soft); color: var(--accent); font-size: 9px; font-weight: 700; }
 .empty { padding: 36px 16px 8px; text-align: center; }
@@ -205,6 +212,9 @@ footer { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) a
   .wall { padding-top: 24px; }
   .wall-heading h2 { font-size: 17px; }
   .toolbar { align-items: flex-start; flex-direction: column; gap: 7px; }
+  .export-bar { align-items: flex-start; flex-direction: column; }
+  .export-bar > div { width: 100%; }
+  .export-bar button { flex: 1; }
   .filters { max-width: 100%; }
   .filters button { padding-inline: 8px; font-size: 8px; }
   .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }

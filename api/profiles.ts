@@ -4,7 +4,7 @@ import Ably from 'ably'
 import { activeRoom, apiError, clearRoomSession, enforceRateLimit, hash, HttpError, redis, requireSameOrigin } from '../lib/room-server.js'
 
 const maxProfiles = 500
-type StoredProfile = { id: string; roomId: string; name: string; linkedinUrl: string; githubUrl?: string; socialUrl?: string; createdAt: number; updatedAt?: number; editHash?: string }
+type StoredProfile = { id: string; roomId: string; name: string; linkedinUrl?: string; githubUrl?: string; socialUrl?: string; contactText?: string; createdAt: number; updatedAt?: number; editHash?: string }
 
 function publicProfile(value: unknown) {
   const profile = typeof value === 'string' ? JSON.parse(value) as Record<string, unknown> : { ...value as Record<string, unknown> }
@@ -24,10 +24,10 @@ local raw = redis.call('GET', KEYS[3])
 if not raw then return -1 end
 local room = cjson.decode(raw)
 if not room.active or tonumber(room.expiresAt) <= tonumber(ARGV[4]) then return -1 end
-if redis.call('SISMEMBER', KEYS[2], ARGV[1]) == 1 then return -3 end
+if ARGV[1] ~= '' and redis.call('SISMEMBER', KEYS[2], ARGV[1]) == 1 then return -3 end
 if redis.call('LLEN', KEYS[1]) >= tonumber(ARGV[3]) then return -4 end
 redis.call('LPUSH', KEYS[1], ARGV[2])
-redis.call('SADD', KEYS[2], ARGV[1])
+if ARGV[1] ~= '' then redis.call('SADD', KEYS[2], ARGV[1]) end
 local ttl = math.ceil((tonumber(room.expiresAt) - tonumber(ARGV[4])) / 1000)
 redis.call('EXPIRE', KEYS[1], ttl)
 redis.call('EXPIRE', KEYS[2], ttl)
@@ -44,17 +44,18 @@ for i = 1, #profiles do
   local profile = cjson.decode(profiles[i])
   if profile.id == ARGV[1] then
     if profile.editHash ~= ARGV[2] then return '-2' end
-    local oldUrl = string.lower(profile.linkedinUrl)
-    local newUrl = string.lower(updated.linkedinUrl)
-    if oldUrl ~= newUrl and redis.call('SISMEMBER', KEYS[2], newUrl) == 1 then return '-3' end
+    local oldUrl = string.lower(profile.linkedinUrl or '')
+    local newUrl = string.lower(updated.linkedinUrl or '')
+    if newUrl ~= '' and oldUrl ~= newUrl and redis.call('SISMEMBER', KEYS[2], newUrl) == 1 then return '-3' end
     if oldUrl ~= newUrl then
-      redis.call('SREM', KEYS[2], oldUrl)
-      redis.call('SADD', KEYS[2], newUrl)
+      if oldUrl ~= '' then redis.call('SREM', KEYS[2], oldUrl) end
+      if newUrl ~= '' then redis.call('SADD', KEYS[2], newUrl) end
     end
     profile.name = updated.name
     profile.linkedinUrl = updated.linkedinUrl
     profile.githubUrl = updated.githubUrl
     profile.socialUrl = updated.socialUrl
+    profile.contactText = updated.contactText
     profile.updatedAt = tonumber(ARGV[4])
     local encoded = cjson.encode(profile)
     redis.call('LSET', KEYS[1], i - 1, encoded)
@@ -100,22 +101,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
     if (req.method !== 'POST') return res.status(405).json({ error: 'Método não permitido.' })
     requireSameOrigin(req)
-    const { name, linkedinUrl, githubUrl: rawGithubUrl, socialUrl: rawSocialUrl, profileId, editCredential: rawEditCredential } = req.body ?? {}
-    if (typeof name !== 'string' || name.trim().length < 2 || name.trim().length > 64 || typeof linkedinUrl !== 'string' || linkedinUrl.length > 300) {
-      return res.status(400).json({ error: 'Informe um nome (2 a 64 caracteres) e um link do LinkedIn.' })
+    const { name, linkedinUrl, githubUrl: rawGithubUrl, socialUrl: rawSocialUrl, contactText: rawContactText, profileId, editCredential: rawEditCredential } = req.body ?? {}
+    if (typeof name !== 'string' || name.trim().length < 2 || name.trim().length > 64 || (linkedinUrl !== undefined && (typeof linkedinUrl !== 'string' || linkedinUrl.length > 300))) {
+      return res.status(400).json({ error: 'Informe um nome (2 a 64 caracteres) e um link do LinkedIn válido, se tiver.' })
     }
-    let url: URL
-    try { url = new URL(linkedinUrl.trim()) } catch { return res.status(400).json({ error: 'Link do LinkedIn inválido.' }) }
-    if (url.protocol !== 'https:' || !/(^|\.)linkedin\.com$/i.test(url.hostname) || !/^\/(in|pub)\/[a-z0-9%_-]+/i.test(url.pathname)) {
-      return res.status(400).json({ error: 'Use um link público de perfil do LinkedIn (linkedin.com/in/...).' })
+    let normalizedLinkedin: string | undefined
+    if (typeof linkedinUrl === 'string' && linkedinUrl.trim()) {
+      let url: URL
+      try { url = new URL(linkedinUrl.trim()) } catch { return res.status(400).json({ error: 'Link do LinkedIn inválido.' }) }
+      if (url.protocol !== 'https:' || !/(^|\.)linkedin\.com$/i.test(url.hostname) || !/^\/(in|pub)\/[a-z0-9%_-]+/i.test(url.pathname)) {
+        return res.status(400).json({ error: 'Use um link público de perfil do LinkedIn (linkedin.com/in/...).' })
+      }
+      normalizedLinkedin = `https://www.linkedin.com${url.pathname.replace(/\/$/, '')}`
     }
     const githubUrl = optionalGithubUrl(rawGithubUrl)
     const socialUrl = optionalHttpsUrl(rawSocialUrl)
+    if (rawContactText !== undefined && (typeof rawContactText !== 'string' || rawContactText.length > 160)) return res.status(400).json({ error: 'O contato deve ter até 160 caracteres.' })
+    const contactText = typeof rawContactText === 'string' && rawContactText.trim() ? rawContactText.trim() : undefined
     if (githubUrl === null) return res.status(400).json({ error: 'Informe um link válido de perfil do GitHub.' })
     if (socialUrl === null) return res.status(400).json({ error: 'O link da rede social precisa usar HTTPS.' })
     const editable = {
-      name: name.trim(), linkedinUrl: `https://www.linkedin.com${url.pathname.replace(/\/$/, '')}`,
-      githubUrl, socialUrl,
+      name: name.trim(), linkedinUrl: normalizedLinkedin,
+      githubUrl, socialUrl, contactText,
     }
     await enforceRateLimit(req, `publish-profile-${room.id}`, 8)
     const now = Date.now()
@@ -127,7 +134,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       profile = { id: crypto.randomUUID(), roomId: room.id, ...editable, createdAt: now, editHash: hash(editCredential) }
       const saved = Number(await redis([
         'EVAL', createProfileScript, '3', listKey, `${listKey}:urls`, `linkwall:room:${room.id}`,
-        profile.linkedinUrl.toLowerCase(), JSON.stringify(profile), String(maxProfiles), String(now),
+        profile.linkedinUrl?.toLowerCase() ?? '', JSON.stringify(profile), String(maxProfiles), String(now),
       ]))
       if (saved === -1) throw new HttpError(410, 'Esta sala expirou ou foi encerrada.')
       if (saved === -3) throw new HttpError(409, 'Esse perfil já foi publicado nesta sala.')

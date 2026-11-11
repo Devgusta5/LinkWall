@@ -4,7 +4,7 @@ import * as Ably from 'ably'
 import QRCode from 'qrcode'
 import './style.css'
 
-type Profile = { id: string; roomId: string; name: string; linkedinUrl: string; githubUrl?: string; socialUrl?: string; createdAt: number }
+type Profile = { id: string; roomId: string; name: string; linkedinUrl?: string; githubUrl?: string; socialUrl?: string; contactText?: string; createdAt: number }
 type RoomSession = { id: string; name: string; expiresAt: number; isOrganizer: boolean }
 type Filter = 'all' | 'unseen' | 'seen'
 type ApiResponse<T> = T & { error?: string }
@@ -44,6 +44,7 @@ function App() {
   const [url, setUrl] = useState('')
   const [github, setGithub] = useState('')
   const [social, setSocial] = useState('')
+  const [contactText, setContactText] = useState('')
   const [editingProfileId, setEditingProfileId] = useState('')
   const [profileSuccess, setProfileSuccess] = useState<{ title: string; detail: string } | null>(null)
   const [busy, setBusy] = useState(false)
@@ -185,11 +186,14 @@ function App() {
     event.preventDefault()
     if (!room) { notify('Entre em uma sala para publicar seus links.'); return }
     const trimmedName = name.trim()
-    let normalized: URL
-    try {
-      normalized = new URL(url.trim())
-      if (normalized.protocol !== 'https:' || !/(^|\.)linkedin\.com$/i.test(normalized.hostname) || !/^\/(in|pub)\/[a-z0-9%_-]+/i.test(normalized.pathname)) throw new Error()
-    } catch { notify('Cole um link válido de perfil do LinkedIn.'); return }
+    let linkedinUrl: string | undefined
+    if (url.trim()) {
+      try {
+        const normalized = new URL(url.trim())
+        if (normalized.protocol !== 'https:' || !/(^|\.)linkedin\.com$/i.test(normalized.hostname) || !/^\/(in|pub)\/[a-z0-9%_-]+/i.test(normalized.pathname)) throw new Error()
+        linkedinUrl = `https://www.linkedin.com${normalized.pathname.replace(/\/$/, '')}`
+      } catch { notify('Cole um link válido de perfil do LinkedIn ou deixe o campo vazio.'); return }
+    }
     if (trimmedName.length < 2 || trimmedName.length > 64) { notify('Seu nome deve ter entre 2 e 64 caracteres.'); return }
     let githubUrl: string | undefined
     if (github.trim()) {
@@ -209,10 +213,9 @@ function App() {
     const editCredential = editingId ? sessionStorage.getItem(profileEditKey(room.id, editingId)) : ''
     if (editingId && !editCredential) { notify('Não foi possível validar a edição deste perfil.'); cancelProfileEdit(); return }
     setBusy(true)
-    const linkedinUrl = `https://www.linkedin.com${normalized.pathname.replace(/\/$/, '')}`
     try {
       const data = await api<{ profile: Profile; editCredential?: string }>('/api/profiles', {
-        name: trimmedName, linkedinUrl, githubUrl, socialUrl,
+        name: trimmedName, linkedinUrl, githubUrl, socialUrl, contactText,
         ...(editingId ? { profileId: editingId, editCredential } : {}),
       }, room.id)
       if (data.editCredential) sessionStorage.setItem(profileEditKey(room.id, data.profile.id), data.editCredential)
@@ -223,7 +226,7 @@ function App() {
         ? { title: 'Alterações salvas!', detail: 'Seu perfil foi atualizado no mural.' }
         : { title: 'Publicado com sucesso!', detail: `Seu perfil já aparece no mural, ${trimmedName}.` })
       setEditingProfileId('')
-      setName(''); setUrl(''); setGithub(''); setSocial('')
+      setName(''); setUrl(''); setGithub(''); setSocial(''); setContactText('')
     } catch (error) {
       if (error instanceof ApiError && error.status === 410) { setPage('closed'); setRoom(null) }
       else if (error instanceof ApiError && error.status === 401) { setPage('lobby'); setRoom(null) }
@@ -234,6 +237,24 @@ function App() {
   async function copy(value: string, message: string) {
     try { await navigator.clipboard.writeText(value); notify(message) }
     catch { notify('Não foi possível copiar.') }
+  }
+  function profileListText() {
+    const entries = profiles.map(profile => [
+      profile.name,
+      profile.linkedinUrl && `LinkedIn: ${profile.linkedinUrl}`,
+      profile.githubUrl && `GitHub: ${profile.githubUrl}`,
+      profile.socialUrl && `Site / rede social: ${profile.socialUrl}`,
+      profile.contactText && `Contato: ${profile.contactText}`,
+    ].filter(Boolean).join('\n'))
+    return [`LinkWall — ${room?.name ?? 'Mural da turma'}`, `${profiles.length} perfil${profiles.length === 1 ? '' : 'is'}`, '', ...entries].join('\n\n')
+  }
+  function downloadProfileList() {
+    const file = new Blob([profileListText()], { type: 'text/plain;charset=utf-8' })
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(file)
+    link.download = 'linkwall-perfis.txt'
+    link.click()
+    window.setTimeout(() => URL.revokeObjectURL(link.href), 1000)
   }
   async function showQr() {
     setQrData(await QRCode.toDataURL(inviteUrl, { width: 240, margin: 1, color: { dark: '#0f172a', light: '#ffffff' } }))
@@ -246,15 +267,16 @@ function App() {
     setEditingProfileId(profile.id)
     setProfileSuccess(null)
     setName(profile.name)
-    setUrl(profile.linkedinUrl)
+    setUrl(profile.linkedinUrl || '')
     setGithub(profile.githubUrl || '')
     setSocial(profile.socialUrl || '')
+    setContactText(profile.contactText || '')
     document.querySelector('.profile-form')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
   }
 
   function cancelProfileEdit() {
     setEditingProfileId('')
-    setName(''); setUrl(''); setGithub(''); setSocial('')
+    setName(''); setUrl(''); setGithub(''); setSocial(''); setContactText('')
   }
 
   return <main className="page">
@@ -296,11 +318,12 @@ function App() {
           {profileSuccess ? <div className="publish-success" role="status" aria-live="polite"><span className="success-check" aria-hidden="true">✓</span><div><strong>{profileSuccess.title}</strong><p>{profileSuccess.detail}</p><small>Você pode continuar conhecendo a turma.</small></div></div> : <>
             <div className="fields">
               <label><span>Seu nome</span><input value={name} onChange={event => setName(event.target.value)} maxLength={64} placeholder="Como podemos te chamar?" required /></label>
-              <label><span>Link do LinkedIn</span><input value={url} onChange={event => setUrl(event.target.value)} maxLength={300} type="url" placeholder="https://linkedin.com/in/seu-perfil" required /></label>
+      <label><span>Link do LinkedIn <small className="optional">opcional</small></span><input value={url} onChange={event => setUrl(event.target.value)} maxLength={300} type="url" placeholder="https://linkedin.com/in/seu-perfil" /></label>
               <label><span>GitHub <small className="optional">opcional</small></span><input value={github} onChange={event => setGithub(event.target.value)} maxLength={300} type="url" placeholder="https://github.com/seu-usuario" /></label>
               <label><span>Outra rede social <small className="optional">opcional</small></span><input value={social} onChange={event => setSocial(event.target.value)} maxLength={300} type="url" placeholder="https://instagram.com/seu-perfil" /></label>
+              <label className="field-wide"><span>Outro contato <small className="optional">opcional</small></span><input value={contactText} onChange={event => setContactText(event.target.value)} maxLength={160} placeholder="E-mail, telefone ou @" /></label>
             </div>
-            <div className="form-bottom">{editingProfileId && <button type="button" className="secondary-button" onClick={cancelProfileEdit}>Cancelar</button>}<small>Seu perfil e links ficarão visíveis para participantes desta sala.</small><button className="primary-button" disabled={busy}>{busy ? (editingProfileId ? 'Salvando…' : 'Publicando…') : (editingProfileId ? 'Salvar alterações' : 'Publicar perfil')} <span>→</span></button></div>
+            <div className="form-bottom">{editingProfileId && <button type="button" className="secondary-button" onClick={cancelProfileEdit}>Cancelar</button>}<small>Seu nome e contatos informados ficarão visíveis para participantes desta sala.</small><button className="primary-button" disabled={busy}>{busy ? (editingProfileId ? 'Salvando…' : 'Publicando…') : (editingProfileId ? 'Salvar alterações' : 'Publicar perfil')} <span>→</span></button></div>
           </>}
         </form>
       </section>
@@ -308,8 +331,9 @@ function App() {
       <section className="wall">
         <div className="wall-heading"><div><h2>Perfis da turma <span className="count">{profiles.length}</span></h2></div><div className="unseen">{unseenCount} <span>não {unseenCount === 1 ? 'visto' : 'vistos'}</span></div></div>
         <div className="toolbar"><div className="filters" aria-label="Filtrar perfis">{([['all','Todos'],['unseen','Não vistos'],['seen','Vistos']] as [Filter,string][]).map(([value,label]) => <button key={value} className={filter === value ? 'active' : ''} onClick={() => setFilter(value)}>{label}{value === 'unseen' && unseenCount > 0 && <b>{unseenCount}</b>}</button>)}</div>{unseenCount > 0 && <button className="mark-all" onClick={() => updateSeen(new Set(profiles.map(profile => profile.id)))}>Marcar todos como vistos</button>}</div>
+        <div className="export-bar"><p>Leve os contatos com você: copie para colar no PyDrop ou baixe a lista.</p><div><button className="secondary-button" onClick={() => void copy(profileListText(), 'Lista copiada! Cole no PyDrop ou onde quiser.')} disabled={!profiles.length}>Copiar texto</button><button className="secondary-button" onClick={downloadProfileList} disabled={!profiles.length}>Baixar .txt</button></div></div>
         {loadError && <div className="closed-note">{loadError}</div>}
-        {visibleProfiles.length === 0 ? <div className="empty"><div className="empty-art"><span>↗</span><i /><i /><i /></div><h3>{profiles.length === 0 ? 'A sala está pronta.' : 'Tudo em dia por aqui.'}</h3><p>{profiles.length === 0 ? 'Seja a primeira pessoa a compartilhar seu perfil com a turma.' : filter === 'unseen' ? 'Você já viu todos os perfis desta sala.' : 'Nenhum perfil encontrado neste filtro.'}</p></div> : <div className="grid">{visibleProfiles.map(profile => <article className={`profile-card ${seen.has(profile.id) ? 'is-seen' : ''}`} key={profile.id}><div className="card-top"><div className="avatar">{profile.name.trim().split(/\s+/).slice(0,2).map(part => part[0]).join('').toUpperCase()}</div><div className="card-top-actions"><button className={`seen-pill ${seen.has(profile.id) ? 'seen' : ''}`} onClick={() => toggleSeen(profile.id)}>{seen.has(profile.id) ? '✓ Visto' : '○ Não visto'}</button>{room && sessionStorage.getItem(profileEditKey(room.id, profile.id)) && <button className="edit-pill" onClick={() => startEditingProfile(profile)}>Editar</button>}</div></div><h3>{profile.name}</h3><div className="profile-links"><a href={profile.linkedinUrl} target="_blank" rel="noopener noreferrer">LinkedIn ↗</a>{profile.githubUrl && <a href={profile.githubUrl} target="_blank" rel="noopener noreferrer">GitHub ↗</a>}{profile.socialUrl && <a href={profile.socialUrl} target="_blank" rel="noopener noreferrer">Rede social ↗</a>}</div><div className="card-footer"><span>Conectando com a turma</span><span className="card-link-icon">in</span></div></article>)}</div>}
+        {visibleProfiles.length === 0 ? <div className="empty"><div className="empty-art"><span>↗</span><i /><i /><i /></div><h3>{profiles.length === 0 ? 'A sala está pronta.' : 'Tudo em dia por aqui.'}</h3><p>{profiles.length === 0 ? 'Seja a primeira pessoa a compartilhar seu perfil com a turma.' : filter === 'unseen' ? 'Você já viu todos os perfis desta sala.' : 'Nenhum perfil encontrado neste filtro.'}</p></div> : <div className="grid">{visibleProfiles.map(profile => <article className={`profile-card ${seen.has(profile.id) ? 'is-seen' : ''}`} key={profile.id}><div className="card-top"><div className="avatar">{profile.name.trim().split(/\s+/).slice(0,2).map(part => part[0]).join('').toUpperCase()}</div><div className="card-top-actions"><button className={`seen-pill ${seen.has(profile.id) ? 'seen' : ''}`} onClick={() => toggleSeen(profile.id)}>{seen.has(profile.id) ? '✓ Visto' : '○ Não visto'}</button>{room && sessionStorage.getItem(profileEditKey(room.id, profile.id)) && <button className="edit-pill" onClick={() => startEditingProfile(profile)}>Editar</button>}</div></div><h3>{profile.name}</h3><div className="profile-links">{profile.linkedinUrl && <a href={profile.linkedinUrl} target="_blank" rel="noopener noreferrer">LinkedIn ↗</a>}{profile.githubUrl && <a href={profile.githubUrl} target="_blank" rel="noopener noreferrer">GitHub ↗</a>}{profile.socialUrl && <a href={profile.socialUrl} target="_blank" rel="noopener noreferrer">Rede social ↗</a>}</div>{profile.contactText && <p className="profile-contact">Contato: {profile.contactText}</p>}{!profile.linkedinUrl && !profile.githubUrl && !profile.socialUrl && !profile.contactText && <p className="profile-contact">Ainda sem contatos adicionados</p>}<div className="card-footer"><span>Conectando com a turma</span><span className="card-link-icon" aria-hidden="true">↗</span></div></article>)}</div>}
       </section>
       {room.isOrganizer && adminCredential && <div className="close-room-bar"><span>Sala temporária · expira em {new Date(room.expiresAt).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</span><button className="close-room-button" onClick={() => void closeRoom()} disabled={busy}>Encerrar sala</button></div>}
     </>}

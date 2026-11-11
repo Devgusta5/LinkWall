@@ -31,8 +31,8 @@ flowchart LR
 
 1. Crie a sala e escolha um nome.
 2. Compartilhe o código ou o link/QR do convite.
-3. Cada participante entra e publica nome e perfil do LinkedIn. GitHub e outra rede social são opcionais.
-4. Explore os cartões, filtre os perfis e marque conexões como vistas.
+3. Cada participante entra e publica o nome; links profissionais e outro contato em texto são opcionais.
+4. Explore os cartões, filtre os perfis, marque conexões como vistas e copie ou baixe a lista de contatos em texto.
 5. A sala é encerrada pela organização ou expira automaticamente.
 
 ## 🎨 Identidade visual
