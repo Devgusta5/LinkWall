@@ -170,6 +170,7 @@ function App() {
 
   async function publish(event: React.FormEvent) {
     event.preventDefault()
+    if (!room) { notify('Entre em uma sala para publicar seus links.'); return }
     const trimmedName = name.trim()
     let normalized: URL
     try {
@@ -194,7 +195,7 @@ function App() {
     setBusy(true)
     const linkedinUrl = `https://www.linkedin.com${normalized.pathname.replace(/\/$/, '')}`
     try {
-      const data = await api<{ profile: Profile }>('/api/profiles', { name: trimmedName, linkedinUrl, githubUrl, socialUrl })
+      const data = await api<{ profile: Profile }>('/api/profiles', { name: trimmedName, linkedinUrl, githubUrl, socialUrl }, room.id)
       setProfiles(current => [data.profile, ...current.filter(item => item.id !== data.profile.id)])
       notify('Seu perfil entrou no mural!')
       setName(''); setUrl(''); setGithub(''); setSocial('')
