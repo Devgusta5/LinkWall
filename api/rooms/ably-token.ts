@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import Ably from 'ably'
-import { activeRoom, apiError, requireSameOrigin } from '../../lib/room-server'
+import { activeRoom, apiError, requireSameOrigin } from '../../lib/room-server.js'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Cache-Control', 'no-store')

@@ -1,6 +1,6 @@
 import { timingSafeEqual } from 'node:crypto'
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { activeRoom, apiError, hash, HttpError, redis, requireSameOrigin } from '../../lib/room-server'
+import { activeRoom, apiError, hash, HttpError, redis, requireSameOrigin } from '../../lib/room-server.js'
 
 const closeScript = `
 local raw = redis.call('GET', KEYS[1])

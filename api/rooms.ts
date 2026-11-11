@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { apiError, createAdminCredential, createRoomCode, enforceRateLimit, hash, redis, requireSameOrigin, sessionSecret, setRoomSession, type Room } from '../lib/room-server'
+import { apiError, createAdminCredential, createRoomCode, enforceRateLimit, hash, redis, requireSameOrigin, sessionSecret, setRoomSession, type Room } from '../lib/room-server.js'
 
 const createScript = `
 if redis.call('EXISTS', KEYS[1]) == 1 or redis.call('EXISTS', KEYS[2]) == 1 then return 0 end

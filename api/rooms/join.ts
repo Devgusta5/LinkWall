@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { apiError, enforceRateLimit, hash, readRoomSession, redis, requireSameOrigin, setRoomSession, type Room } from '../../lib/room-server'
+import { apiError, enforceRateLimit, hash, readRoomSession, redis, requireSameOrigin, setRoomSession, type Room } from '../../lib/room-server.js'
 
 const invalidCode = 'Código inválido, sala encerrada ou expirada.'
 const joinScript = `

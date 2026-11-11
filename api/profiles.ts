@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import Ably from 'ably'
-import { activeRoom, apiError, clearRoomSession, enforceRateLimit, HttpError, redis, requireSameOrigin } from '../lib/room-server'
+import { activeRoom, apiError, clearRoomSession, enforceRateLimit, HttpError, redis, requireSameOrigin } from '../lib/room-server.js'
 
 const maxProfiles = 500
 const readProfilesScript = `
